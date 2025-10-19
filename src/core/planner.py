@@ -13,7 +13,9 @@ class Planner:
         plan = PlanResult(steps=[])
         # list files
         if "list" in user_input and "file" in user_input:
-            path = self._extract_path(user_input) or "."
+            parts = re.findall(f"(\.\/\w+|\.\/|\.)", user_input)
+            path = parts[0] if parts else "."
+
             plan.add_step(PlanStep(tool="list_files", args={"path": path}))
             return plan
 
