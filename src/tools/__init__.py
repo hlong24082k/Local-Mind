@@ -6,7 +6,7 @@ from src.tools.file_ops import (
     delete_file
 )
 
-ToolRegistry.register('tool.list_files', list_files)
-ToolRegistry.register('tool.read_file', read_file)
-ToolRegistry.register('tool.move_file', move_file)
-ToolRegistry.register('tool.delete_file', delete_file)
+ToolRegistry.register('list_files', list_files)
+ToolRegistry.register('read_file', read_file)
+ToolRegistry.register('move_file', move_file)
+ToolRegistry.register('delete_file', delete_file)

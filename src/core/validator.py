@@ -6,8 +6,8 @@ from src.tools.tool_registry import ToolRegistry
 class PlanValidator:
     """Validates if a Plan is structurally, logically, and semantically correct."""
 
-    def __init__(self, tool_registry: ToolRegistry):
-        self.tools = tool_registry
+    def __init__(self):
+        self.tools = ToolRegistry()
 
     def validate(self, plan: PlanResult) -> ValidationResult:
         errors, warnings = [], []
@@ -20,7 +20,7 @@ class PlanValidator:
         step_ids = set()
         for step in plan.steps:
             # Tool existence
-            if step.tool not in self.tools.names:
+            if step.tool not in self.tools.names():
                 errors.append(f"Unknown tool: {step.tool}")
 
             # Args validation
@@ -35,9 +35,9 @@ class PlanValidator:
                 warnings.append(f"Step '{step}' deletes file without confirmation.")
 
             # Dependency validation
-            for dep in step.depends_on or []:
-                if dep not in step_ids:
-                    warnings.append(f"Step '{step}' depends on non-existent step: {dep}")
+            # for dep in step.depends_on or []:
+            #     if dep not in step_ids:
+            #         warnings.append(f"Step '{step}' depends on non-existent step: {dep}")
 
         success = len(errors) == 0
         return ValidationResult(success=success, errors=errors, warnings=warnings)

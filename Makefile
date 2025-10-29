@@ -11,4 +11,4 @@ quality:
 	isort --check-only $(CHECK_DIRS)
 	flake8 $(CHECK_DIRS)
 clean:
-	find . | grep -E '(\.mypy_cache|__pycache__|__MACOSX|.pytest_cache|\.pyc|\.pyo$$|.idea)' | xargs rm -rf
+	find . | grep -E '(\.mypy_cache|__pycache__|__MACOSX|.pytest_cache|\.pyc|\.pyo$$|.idea|.vscode)' | xargs rm -rf

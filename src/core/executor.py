@@ -5,8 +5,8 @@ from src.models.plan import PlanResult
 from src.models.execution import ExecutionResult
 
 class Executor:
-    def __init__(self, tool_registry: ToolRegistry):
-        self.tool_registry = tool_registry
+    def __init__(self):
+        self.tool_registry = ToolRegistry()
 
     def execute(self, plan: PlanResult) -> ExecutionResult:
         results = ExecutionResult(step_results=[])
