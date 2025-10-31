@@ -1,10 +1,16 @@
 import os
-import google.generativeai as genai
+
+import asyncio
+import threading
+
+from collections import deque
+from google import genai
+from google.genai import types
 
 from typing import Optional, List
 from dotenv import load_dotenv
 
-from src.llm.base import LLMBase, LLMResponse  # assuming base.py defines LLMBase and LLMResponse
+from src.llm.base import LLMBase, LLMResponse
 
 
 load_dotenv(".env", override=True)
@@ -23,60 +29,96 @@ class GeminiProvider(LLMBase):
         """
         super().__init__(provider_name="gemini")
         self.model_name = model_name
-        genai.configure(api_key=GEMINI_API_KEY)
-        self.model = genai.GenerativeModel(model_name)
+        self.client = genai.Client(api_key=GEMINI_API_KEY)
 
-    def generate(
-        self,
-        prompt: str,
-        max_tokens: int = 512,
-        temperature: float = 0.2,
-        stop: Optional[List[str]] = None,
-        stream: bool = False,
-        **kwargs,
-    ) -> LLMResponse:
+        self.safety_settings = [
+            types.SafetySetting(
+                category= types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+                threshold=types.HarmBlockThreshold.BLOCK_NONE, # BLOCK_LOW_AND_ABOVE
+            ),
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                threshold=types.HarmBlockThreshold.BLOCK_NONE,
+            ),
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                threshold=types.HarmBlockThreshold.BLOCK_NONE,
+            ),
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                threshold=types.HarmBlockThreshold.BLOCK_NONE,
+            ),
+        ]
+
+    def __run_gemini_stream_in_thread(self, query: str, queue: asyncio.Queue, loop: asyncio.AbstractEventLoop):
+        """
+        Internal method to run Gemini streaming in a separate thread.
+        """
+        try:
+            contents = [
+                types.Content(
+                    role="user",
+                    parts=[
+                        types.Part.from_text(text=query),
+                    ],
+                ),
+            ]
+
+            generate_content_config = types.GenerateContentConfig(
+                thinking_config = types.ThinkingConfig(
+                    thinking_budget=0,
+                ),
+                safety_settings=self.safety_settings,
+                automatic_function_calling=types.AutomaticFunctionCallingConfig(
+                    disable=True
+                ),
+            )
+
+            response_stream = self.client.models.generate_content_stream(
+                model=self.model_name,
+                contents=contents,
+                config=generate_content_config,
+            )
+
+            for chunk in response_stream:
+                if chunk.text:
+                    loop.call_soon_threadsafe(queue.put_nowait, chunk.text)
+
+        except Exception as e:
+            loop.call_soon_threadsafe(queue.put_nowait, f"[Error] Gemini streaming failed: {e}")
+
+        finally:
+            loop.call_soon_threadsafe(queue.put_nowait, None)
+
+    async def generate(self, query: str):
         """
         Generate text using Gemini model.
         """
-        generation_config = {
-            "temperature": temperature,
-            "max_output_tokens": max_tokens,
-        }
+        loop = asyncio.get_running_loop()
+        queue = asyncio.Queue()
 
-        if stop:
-            generation_config["stop_sequences"] = stop
+        threading.Thread(
+            target=self.__run_gemini_stream_in_thread,
+            args=(query, queue, loop),
+            daemon=True
+        ).start()
 
-        try:
-            if stream:
-                # Gemini supports streaming
-                response_stream = self.model.generate_content(
-                    prompt,
-                    generation_config=generation_config,
-                    stream=True,
-                    **kwargs,
-                )
-                text_output = ""
-                for chunk in response_stream:
-                    if chunk.candidates and chunk.candidates[0].content.parts:
-                        text_output += chunk.candidates[0].content.parts[0].text
-            else:
-                response = self.model.generate_content(
-                    prompt,
-                    # generation_config=generation_config,
-                    **kwargs,
-                )
-                text_output = response.text or ""
-            
-            return LLMResponse(
-                text=text_output.strip(),
-                provider=self.provider,
-                metadata={
-                    "model": self.model_name,
-                },
-            )
-        except Exception as e:
-            return LLMResponse(
-                text=f"[Error] Gemini generation failed: {e}",
-                provider=self.provider,
-                metadata={"error": str(e)},
-            )
+        while True:
+            chunk = await queue.get()
+            if chunk is None:
+                break
+            yield chunk
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    async def main():
+        gemini = GeminiProvider(model_name="gemini-2.5-flash")
+        query = "Explain the theory of relativity in simple terms."
+
+        print("Gemini Response:")
+        async for chunk in gemini.generate(query):
+            print(chunk, end="", flush=True)
+
+    asyncio.run(main())
