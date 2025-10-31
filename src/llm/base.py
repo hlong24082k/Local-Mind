@@ -20,15 +20,7 @@ class LLMBase(ABC):
         self.provider = provider_name
 
     @abstractmethod
-    def generate(
-        self,
-        prompt: str,
-        max_tokens: int = 512,
-        temperature: float = 0.0,
-        stop: Optional[list] = None,
-        stream: bool = False,
-        **kwargs,
-    ) -> LLMResponse:
+    def generate(self, query: str):
         """
         Generate text for the given prompt.
 
