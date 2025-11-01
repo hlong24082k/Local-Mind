@@ -25,3 +25,12 @@ class ToolRegistry:
     @classmethod
     def names(cls) -> List[str]:
         return list(cls._tools.keys())
+    
+    @classmethod
+    def summary(cls) -> str:
+        lines = []
+        for name, tool in cls._tools.items():
+            arguments = ", ".join(tool.required_args)
+            line = f"- {name}({arguments})"
+            lines.append(line)
+        return "\n".join(lines)
