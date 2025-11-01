@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 
 @dataclass
 class LLMResponse:
-    text: str
+    text: str | None = None
     provider: str = ""
     metadata: Optional[Dict[str, Any]] = None
 
