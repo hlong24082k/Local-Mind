@@ -1,4 +1,4 @@
-# src/core/validator.py
+# src/local_mind_agent/validator.py
 from src.models.plan import PlanResult
 from src.models.validation import ValidationResult
 from src.tools.tool_registry import ToolRegistry
