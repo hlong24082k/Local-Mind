@@ -1,8 +1,8 @@
 from loguru import logger
 
-from src.core.executor import Executor
-from src.core.planner import Planner
-from src.core.validator import PlanValidator
+from src.local_mind_agent.executor import Executor
+from src.local_mind_agent.planner import Planner
+from src.local_mind_agent.validator import PlanValidator
 
 
 class AgentCore:
@@ -28,6 +28,6 @@ class AgentCore:
 
 if __name__ == "__main__":
     agent = AgentCore()
-    input_data = "list files in ./src/core"
+    input_data = "list files in ./src/local_mind_agent"
     result = agent.run(input_data)
     print(result)  # Replace with appropriate result handling
